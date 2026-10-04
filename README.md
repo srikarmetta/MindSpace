@@ -16,8 +16,8 @@
 - **Competition:** Samsung PRISM GenAI Hackathon 2026
 - **Theme:** Theme 05 — Voice & Multimodal Full-Duplex Agents
 - **Official Submission Tag:** `PRISM_GENAI_HACKATHON_Y2026`
-- **📺 Demo Video:** [Link to Demo Video (YouTube / Google Drive) — *Placeholder to be populated*](https://youtube.com)
-- **📑 Presentation (PPT):** [presentation/MINDSPACE_PRISM_HACKATHON_2026.pptx](presentation/README.md)
+- **Demo Video:** [Link](https://drive.google.com/file/d/19N2Yj1I9WRPvgLeutxoimbvmgiqVf_AY/view?usp=sharing)
+- **Presentation (PPT):** [presentation/VITV_Agents007_MindSpace.pptx](presentation/README.md)
 
 ---
 
