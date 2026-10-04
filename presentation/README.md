@@ -1,7 +1,5 @@
-# Presentation Slide Deck
-
 This directory is designated for the Samsung PRISM GenAI Hackathon presentation file:
-`MINDSPACE_PRISM_HACKATHON_2026.pptx`
+`VITV_Agents007_MindSpace.pptx`
 
 ### Presentation Outline
 1. **Title & Tagline**: MindSpace — "Think out loud. Watch it evolve."
