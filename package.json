@@ -14,7 +14,8 @@
     "test:voice": "tsx src/test/voiceEngine.test.ts",
     "test:fdb": "tsx src/test/fdbExecutor.test.ts",
     "test:generic": "tsx src/test/genericPlanner.test.ts",
-    "test:all": "tsx src/test/foodDeliveryInterruption.test.ts && tsx src/test/officialDemo.test.ts && tsx src/test/voiceEngine.test.ts && tsx src/test/fdbExecutor.test.ts && tsx src/test/genericPlanner.test.ts"
+    "test:ir": "tsx src/test/architectureIR.test.ts",
+    "test:all": "tsx src/test/foodDeliveryInterruption.test.ts && tsx src/test/officialDemo.test.ts && tsx src/test/voiceEngine.test.ts && tsx src/test/fdbExecutor.test.ts && tsx src/test/genericPlanner.test.ts && tsx src/test/architectureIR.test.ts"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",

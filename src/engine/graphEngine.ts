@@ -63,11 +63,11 @@ function calculateDeterministicLayout(
   // Any unranked nodes get rank based on their logical category
   nodes.forEach((n, idx) => {
     if (!ranks.has(n.id)) {
-      if (n.type === 'user') ranks.set(n.id, 0);
+      if (n.type === 'user' || n.type === 'client') ranks.set(n.id, 0);
       else if (n.type === 'api') ranks.set(n.id, 1);
       else if (n.type === 'agent' || n.type === 'service') ranks.set(n.id, 2);
       else if (n.type === 'queue' || n.type === 'cache') ranks.set(n.id, 3);
-      else if (n.type === 'database' || n.type === 'storage') ranks.set(n.id, 4);
+      else if (n.type === 'database' || n.type === 'storage' || n.type === 'external_service') ranks.set(n.id, 4);
       else ranks.set(n.id, idx);
     }
   });

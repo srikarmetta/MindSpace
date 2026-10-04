@@ -1,5 +1,6 @@
 export type NodeType =
   | 'user'
+  | 'client'
   | 'agent'
   | 'service'
   | 'database'
@@ -7,6 +8,7 @@ export type NodeType =
   | 'api'
   | 'cache'
   | 'storage'
+  | 'external_service'
   | 'generic';
 
 export type NodeStatus =

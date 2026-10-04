@@ -1,9 +1,11 @@
-import type { GraphNode, GraphEdge } from '../types/graph';
+import type { GraphNode, GraphEdge, NodeType } from '../types/graph';
 import type { GraphOperation } from '../types/operations';
 import type { Intent } from '../types/intent';
 import type { GraphState } from '../state/graphStore';
+import type { ArchitectureIR } from '../types/ir';
 import { RevisionEngine } from './revisionEngine';
-import { ArchitectureInterpreter } from './architectureInterpreter';
+import { calculateLayout } from './graphEngine';
+import { DeterministicArchitectureInterpreter } from './deterministicInterpreter';
 
 export interface PlanResult {
   operations: GraphOperation[];
@@ -115,8 +117,103 @@ export function planWithSummary(
     return planAICustomerSupportSystem(intent.id, baseVersion, createOp);
   }
 
-  // General Architecture Planner (Synthesizes arbitrary systems via ArchitectureInterpreter)
-  return ArchitectureInterpreter.interpret(intent, baseVersion, createOp);
+  // General Architecture Planner: ArchitectureInterpreter -> ArchitectureIR -> planFromIR
+  const interpreter = new DeterministicArchitectureInterpreter();
+  const ir = interpreter.parseArchitectureIR(intent.text);
+  return planFromIR(ir, baseVersion, createOp);
+}
+
+/**
+ * Converts an ArchitectureIR into progressive GraphOperations.
+ */
+export function planFromIR(
+  ir: ArchitectureIR,
+  _baseVersion: number,
+  createOp: (
+    type: GraphOperation['type'],
+    desc: string,
+    targetKey: string,
+    data: { node?: GraphNode; edge?: GraphEdge }
+  ) => GraphOperation
+): PlanResult {
+  const operations: GraphOperation[] = [];
+
+  // 1. Convert IR components to GraphNodes
+  const unpositionedNodes: GraphNode[] = ir.components.map((comp) => ({
+    id: comp.id,
+    type: comp.type as NodeType,
+    label: comp.name,
+    description: comp.description,
+    status: 'pending',
+    metadata: {
+      technology: comp.technology,
+      ...comp.metadata,
+    },
+  }));
+
+  // 2. Convert IR relationships to GraphEdges
+  const unpositionedEdges: GraphEdge[] = ir.relationships.map((rel) => {
+    const edgeId = `edge-${rel.source.replace(/^node-/, '')}-${rel.target.replace(/^node-/, '')}`;
+    return {
+      id: edgeId,
+      source: rel.source,
+      target: rel.target,
+      label: rel.description || rel.relationship,
+      status: 'pending',
+    };
+  });
+
+  // 3. Calculate clean non-negative layout coordinates using Dagre and deterministic fallback
+  const { nodes: layoutedNodes, edges: layoutedEdges } = calculateLayout(
+    unpositionedNodes,
+    unpositionedEdges,
+    'LR'
+  );
+
+  // 4. Progressive construction: Add nodes first by horizontal layer (position.x), then add connecting edges
+  const sortedNodes = [...layoutedNodes].sort((a, b) => {
+    const posA = a.position?.x ?? 0;
+    const posB = b.position?.x ?? 0;
+    return posA - posB;
+  });
+
+  sortedNodes.forEach((node) => {
+    operations.push(
+      createOp(
+        'ADD_NODE',
+        `Deploy ${node.label} (${node.type.toUpperCase()})`,
+        node.id,
+        { node }
+      )
+    );
+  });
+
+  layoutedEdges.forEach((edge) => {
+    const srcNode = layoutedNodes.find((n) => n.id === edge.source);
+    const tgtNode = layoutedNodes.find((n) => n.id === edge.target);
+    const srcLabel = srcNode ? srcNode.label : edge.source;
+    const tgtLabel = tgtNode ? tgtNode.label : edge.target;
+
+    operations.push(
+      createOp(
+        'ADD_EDGE',
+        `Connect ${srcLabel} → ${tgtLabel} (${edge.label || 'Link'})`,
+        edge.id,
+        { edge }
+      )
+    );
+  });
+
+  const techText =
+    ir.technologies && ir.technologies.length > 0
+      ? ` using ${ir.technologies.join(', ')}`
+      : '';
+  const summary = `Synthesized architecture with ${sortedNodes.length} components${techText} and ${layoutedEdges.length} connections.`;
+
+  return {
+    operations,
+    summary,
+  };
 }
 
 /**
