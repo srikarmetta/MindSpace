@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGraphStore } from '../../state/graphStore';
 import { latencyTracker } from '../../voice/latencyTracker';
-import { Cpu, Layers, GitBranch, ShieldCheck, Gauge } from 'lucide-react';
+import { Cpu, Layers, GitBranch, Gauge } from 'lucide-react';
 
 export const StatusBar: React.FC = () => {
   const agentStatus = useGraphStore((s) => s.agentStatus);
@@ -21,38 +21,34 @@ export const StatusBar: React.FC = () => {
     (op) => op.status === 'PENDING' || op.status === 'RUNNING'
   ).length;
 
+  const activeNodesCount = nodes.filter((n) => n.status !== 'superseded').length;
+  const activeEdgesCount = edges.filter((e) => e.status !== 'superseded').length;
+
   return (
-    <footer className="h-7 border-t border-zinc-900 bg-[#06070a] px-3 flex items-center justify-between text-[11px] font-mono text-zinc-400 select-none shrink-0 z-20">
+    <footer className="h-6 border-t border-zinc-800/80 bg-[#09090b] px-3 flex items-center justify-between text-[11px] font-mono text-zinc-500 select-none shrink-0 z-20">
       <div className="flex items-center gap-3">
-        {/* Full duplex status indicator */}
+        {/* Runtime Engine State */}
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-zinc-400">DUPLEX ARCHITECT</span>
-        </div>
-
-        <span className="text-zinc-700">|</span>
-
-        <div className="flex items-center gap-1 text-zinc-400">
-          <span>STATE:</span>
           <span
-            className={`font-semibold ${
+            className={`w-1.5 h-1.5 rounded-full ${
               agentStatus === 'EXECUTING'
-                ? 'text-cyan-400'
+                ? 'bg-cyan-400 animate-pulse'
                 : agentStatus === 'REPLANNING'
-                ? 'text-amber-400'
+                ? 'bg-amber-400 animate-pulse'
                 : agentStatus === 'PLANNING'
-                ? 'text-indigo-400'
-                : 'text-zinc-300'
+                ? 'bg-indigo-400'
+                : 'bg-emerald-500'
             }`}
-          >
+          />
+          <span className="text-zinc-400 uppercase text-[10px]">
             {agentStatus}
           </span>
         </div>
 
         {pendingOps > 0 && (
           <>
-            <span className="text-zinc-700">|</span>
-            <div className="flex items-center gap-1 text-cyan-400">
+            <span className="text-zinc-800">|</span>
+            <div className="flex items-center gap-1 text-cyan-400 text-[10px]">
               <Cpu className="w-3 h-3 animate-spin" />
               <span>{pendingOps} ops executing</span>
             </div>
@@ -61,33 +57,26 @@ export const StatusBar: React.FC = () => {
 
         {e2eLatency !== null && (
           <>
-            <span className="text-zinc-700">|</span>
-            <div className="flex items-center gap-1 text-indigo-400">
-              <Gauge className="w-3 h-3" />
+            <span className="text-zinc-800">|</span>
+            <div className="flex items-center gap-1 text-zinc-400 text-[10px]">
+              <Gauge className="w-3 h-3 text-zinc-500" />
               <span>{e2eLatency}ms measured E2E</span>
             </div>
           </>
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 text-[10px]">
         <div className="flex items-center gap-1 text-zinc-400">
-          <Layers className="w-3 h-3" />
-          <span>{nodes.length} nodes · {edges.length} edges</span>
+          <Layers className="w-3 h-3 text-zinc-500" />
+          <span>{activeNodesCount} nodes · {activeEdgesCount} edges</span>
         </div>
 
-        <span className="text-zinc-700">|</span>
+        <span className="text-zinc-800">|</span>
 
         <div className="flex items-center gap-1 text-zinc-400">
-          <GitBranch className="w-3 h-3 text-indigo-400" />
+          <GitBranch className="w-3 h-3 text-zinc-500" />
           <span>v{version}</span>
-        </div>
-
-        <span className="text-zinc-700">|</span>
-
-        <div className="flex items-center gap-1 text-emerald-400/80">
-          <ShieldCheck className="w-3 h-3" />
-          <span>Non-destructive Evolution</span>
         </div>
       </div>
     </footer>

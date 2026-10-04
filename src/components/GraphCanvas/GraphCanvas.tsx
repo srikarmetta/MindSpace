@@ -32,15 +32,15 @@ const GraphCanvasInner: React.FC = () => {
   const rfNodes = useMemo(() => toReactFlowNodes(nodes), [nodes]);
   const rfEdges = useMemo(() => toReactFlowEdges(edges, nodes), [edges, nodes]);
 
-  // Keep a ref to previous node count to auto-fit view when graph expands
+  // Auto-fit view when node count changes
   const prevCountRef = useRef(nodes.length);
 
   useEffect(() => {
     if (nodes.length > 0 && Math.abs(nodes.length - prevCountRef.current) >= 1) {
       prevCountRef.current = nodes.length;
       const timeout = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 350 });
-      }, 70);
+        fitView({ padding: 0.2, duration: 300 });
+      }, 60);
       return () => clearTimeout(timeout);
     }
     prevCountRef.current = nodes.length;
@@ -75,8 +75,8 @@ const GraphCanvasInner: React.FC = () => {
   );
 
   return (
-    <div className="relative w-full h-full bg-[#07080c] overflow-hidden select-none">
-      {/* High-Visibility Interruption & Evolution HUD */}
+    <div className="relative w-full h-full bg-[#09090b] overflow-hidden select-none">
+      {/* Real-time Evolution HUD banner */}
       <InterruptionHUD />
 
       <ReactFlow
@@ -85,7 +85,7 @@ const GraphCanvasInner: React.FC = () => {
         nodeTypes={nodeTypes}
         onNodesChange={handleNodesChange}
         onEdgesChange={handleEdgesChange}
-        minZoom={0.2}
+        minZoom={0.15}
         maxZoom={1.5}
         defaultViewport={{ x: 60, y: 60, zoom: 0.85 }}
         proOptions={{ hideAttribution: true }}
@@ -93,26 +93,26 @@ const GraphCanvasInner: React.FC = () => {
         <Background
           variant={BackgroundVariant.Dots}
           gap={24}
-          size={1.2}
-          color="#1e2230"
-          className="bg-[#07080c]"
+          size={1}
+          color="#27272a"
+          className="bg-[#09090b]"
         />
 
         <Controls
-          className="!bg-[#11141d] !border !border-zinc-800 !rounded-lg !shadow-xl !overflow-hidden"
+          className="!bg-[#18181b] !border !border-zinc-800 !rounded-md !shadow-lg !overflow-hidden !m-3"
           showInteractive={false}
         />
       </ReactFlow>
 
       {/* Fit View Shortcut Button */}
       {nodes.length > 0 && (
-        <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
           <button
-            onClick={() => fitView({ padding: 0.2, duration: 400 })}
+            onClick={() => fitView({ padding: 0.2, duration: 300 })}
             title="Auto-Fit Architecture"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#121520]/90 border border-zinc-800 hover:border-indigo-500/40 text-xs font-mono text-zinc-300 hover:text-white transition-all shadow-md"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#18181b] border border-zinc-800 hover:border-zinc-700 text-xs font-mono text-zinc-300 hover:text-white transition-colors shadow-md"
           >
-            <Maximize2 className="w-3.5 h-3.5 text-indigo-400" />
+            <Maximize2 className="w-3.5 h-3.5 text-zinc-400" />
             <span>Fit View</span>
           </button>
         </div>
