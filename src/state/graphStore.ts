@@ -10,6 +10,7 @@ import type {
 } from '../types/graph';
 import type { GraphOperation, OperationLifecycle } from '../types/operations';
 import type { Intent, IntentLifecycle } from '../types/intent';
+import type { ArchitectureIR } from '../types/ir';
 
 export type InterruptionStage =
   | 'USER_INTERRUPTED'
@@ -41,9 +42,11 @@ export interface GraphState {
   isVoiceListening: boolean;
   interruptionBanner: InterruptionBannerState | null;
   inputPrompt: string;
+  currentIR: ArchitectureIR | null;
 
   // Actions
   setInputPrompt: (prompt: string) => void;
+  setCurrentIR: (ir: ArchitectureIR | null) => void;
   setInterruptionBanner: (banner: InterruptionBannerState | null) => void;
   setNodes: (nodes: GraphNode[] | ((prev: GraphNode[]) => GraphNode[])) => void;
   setEdges: (edges: GraphEdge[] | ((prev: GraphEdge[]) => GraphEdge[])) => void;
@@ -137,8 +140,10 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   isVoiceListening: false,
   interruptionBanner: null,
   inputPrompt: '',
+  currentIR: null,
 
   setInputPrompt: (inputPrompt) => set({ inputPrompt }),
+  setCurrentIR: (currentIR) => set({ currentIR }),
   setInterruptionBanner: (interruptionBanner) => set({ interruptionBanner }),
 
   setNodes: (nodesOrUpdater) =>
@@ -358,6 +363,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       agentStatus: 'IDLE',
       interruptionBanner: null,
       inputPrompt: '',
+      currentIR: null,
       activities: [
         {
           id: `reset-${Date.now()}`,

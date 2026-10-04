@@ -24,7 +24,8 @@ export class OperationEngine {
       const store = useGraphStore.getState();
 
       // Emit required activity UI logs
-      store.addActivity('⚠ User interrupted', 'interrupted');
+      store.addActivity('User interrupted', 'interrupted');
+      store.addActivity('Operation interrupted', 'interrupted');
       store.addActivity('⚠ Stale intent detected', 'interrupted');
       store.addActivity('↻ Cancelling stale operations', 'running');
 
@@ -130,6 +131,8 @@ export class OperationEngine {
     const currentIntentId = initialStore.currentIntent?.id || '';
 
     if (isRevision) {
+      initialStore.addActivity('Updated plan created', 'info');
+      initialStore.addActivity('Replacement operations started', 'running');
       initialStore.addActivity('↻ Superseding old architecture', 'superseded');
       initialStore.addActivity('✓ Executing new plan', 'completed');
       initialStore.setActiveOperations([...initialStore.activeOperations, ...operations]);
@@ -292,6 +295,8 @@ export class OperationEngine {
         }, 6500);
       }
 
+      endStore.addActivity('Operations completed', 'completed');
+      endStore.addActivity('Architecture updated', 'completed');
       endStore.updateIntentStatus('completed');
       endStore.setAgentStatus('IDLE');
     }

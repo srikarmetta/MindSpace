@@ -3,7 +3,6 @@ import {
   ReactFlow,
   Background,
   Controls,
-  MiniMap,
   BackgroundVariant,
   useReactFlow,
   ReactFlowProvider,
@@ -102,14 +101,6 @@ const GraphCanvasInner: React.FC = () => {
         <Controls
           className="!bg-[#11141d] !border !border-zinc-800 !rounded-lg !shadow-xl !overflow-hidden"
           showInteractive={false}
-        />
-
-        <MiniMap
-          nodeStrokeColor="#4f46e5"
-          nodeColor="#181d2a"
-          nodeBorderRadius={4}
-          maskColor="rgba(7, 8, 12, 0.75)"
-          className="!bg-[#0c0e15] !border !border-zinc-800/80 !rounded-lg !shadow-xl"
         />
       </ReactFlow>
 

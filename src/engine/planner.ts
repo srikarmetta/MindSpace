@@ -2,10 +2,12 @@ import type { GraphNode, GraphEdge, NodeType } from '../types/graph';
 import type { GraphOperation } from '../types/operations';
 import type { Intent } from '../types/intent';
 import type { GraphState } from '../state/graphStore';
+import { useGraphStore } from '../state/graphStore';
 import type { ArchitectureIR } from '../types/ir';
 import { RevisionEngine } from './revisionEngine';
 import { calculateLayout } from './graphEngine';
 import { DeterministicArchitectureInterpreter } from './deterministicInterpreter';
+import { replanArchitecture } from './architectureReplanner';
 
 export interface PlanResult {
   operations: GraphOperation[];
@@ -32,6 +34,24 @@ export function planWithSummary(
   const prompt = intent.text.toLowerCase();
   const baseVersion = graphState.version;
 
+  // Helper to build idempotent operation
+  const createOp = (
+    type: GraphOperation['type'],
+    desc: string,
+    targetKey: string,
+    data: { node?: GraphNode; edge?: GraphEdge; targetId?: string }
+  ): GraphOperation => ({
+    id: `op-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    idempotencyKey: `${intent.id}:${baseVersion}:${type}:${targetKey}`,
+    intentId: intent.id,
+    baseVersion,
+    type,
+    status: 'PENDING',
+    timestamp: Date.now(),
+    description: desc,
+    ...data,
+  });
+
   // Handle Cancellation intent
   if (intent.type === 'CANCELLATION') {
     return {
@@ -56,30 +76,46 @@ export function planWithSummary(
       prompt.includes('connect')
     ))
   ) {
-    const revision = RevisionEngine.evaluate(intent, graphState, activeOperations);
+    // 1. Official demo multi-agent scenario:
+    if (
+      prompt.includes('multi-agent') ||
+      prompt.includes('multi agent') ||
+      prompt.includes('agent router')
+    ) {
+      const revision = RevisionEngine.evaluate(intent, graphState, activeOperations);
+      return {
+        operations: revision.newOperations,
+        summary: revision.summary,
+      };
+    }
+
+    // 2. Official demo billing database scenario:
+    if (
+      prompt.includes('billing') &&
+      (prompt.includes('database') || prompt.includes('db') || prompt.includes('own'))
+    ) {
+      const revision = RevisionEngine.evaluate(intent, graphState, activeOperations);
+      return {
+        operations: revision.newOperations,
+        summary: revision.summary,
+      };
+    }
+
+    // 3. Complete Replanning for all architecture modifications / interruptions
+    const fallbackIR = useGraphStore.getState().currentIR;
+    const replanResult = replanArchitecture(
+      intent,
+      graphState,
+      activeOperations,
+      fallbackIR,
+      createOp
+    );
+    useGraphStore.getState().setCurrentIR(replanResult.updatedIR);
     return {
-      operations: revision.newOperations,
-      summary: revision.summary,
+      operations: replanResult.operations,
+      summary: replanResult.summary,
     };
   }
-
-  // Helper to build idempotent operation
-  const createOp = (
-    type: GraphOperation['type'],
-    desc: string,
-    targetKey: string,
-    data: { node?: GraphNode; edge?: GraphEdge; targetId?: string }
-  ): GraphOperation => ({
-    id: `op-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-    idempotencyKey: `${intent.id}:${baseVersion}:${type}:${targetKey}`,
-    intentId: intent.id,
-    baseVersion,
-    type,
-    status: 'PENDING',
-    timestamp: Date.now(),
-    description: desc,
-    ...data,
-  });
 
   // Food Delivery Platform: "Build a real-time food delivery platform"
   if (
@@ -90,9 +126,10 @@ export function planWithSummary(
     return planFoodDeliveryPlatform(intent.id, baseVersion, createOp);
   }
 
-  // Standalone Kafka scenario (e.g. "Use Kafka for async communication")
+  // Standalone Kafka scenario (e.g. "Use Kafka for async/asynchronous communication")
   if (
-    prompt === 'use kafka for async communication' ||
+    prompt.includes('kafka for async') ||
+    prompt.includes('kafka for asynchronous') ||
     prompt === 'use kafka' ||
     prompt === 'kafka queue'
   ) {
@@ -120,6 +157,7 @@ export function planWithSummary(
   // General Architecture Planner: ArchitectureInterpreter -> ArchitectureIR -> planFromIR
   const interpreter = new DeterministicArchitectureInterpreter();
   const ir = interpreter.parseArchitectureIR(intent.text);
+  useGraphStore.getState().setCurrentIR(ir);
   return planFromIR(ir, baseVersion, createOp);
 }
 
@@ -370,6 +408,29 @@ function planFoodDeliveryPlatform(
     createOp('ADD_EDGE', 'Connect Delivery Service → PostgreSQL', edgeDeliveryPostgres.id, { edge: edgeDeliveryPostgres })
   );
 
+  useGraphStore.getState().setCurrentIR({
+    components: [
+      { id: customerApp.id, name: customerApp.label, type: customerApp.type, description: customerApp.description },
+      { id: apiGateway.id, name: apiGateway.label, type: apiGateway.type, description: apiGateway.description },
+      { id: orderService.id, name: orderService.label, type: orderService.type, description: orderService.description },
+      { id: restaurantService.id, name: restaurantService.label, type: restaurantService.type, description: restaurantService.description },
+      { id: paymentService.id, name: paymentService.label, type: paymentService.type, description: paymentService.description },
+      { id: kafkaNode.id, name: kafkaNode.label, type: kafkaNode.type, technology: 'Kafka', description: kafkaNode.description },
+      { id: deliveryService.id, name: deliveryService.label, type: deliveryService.type, description: deliveryService.description },
+      { id: postgresNode.id, name: postgresNode.label, type: postgresNode.type, technology: 'PostgreSQL', description: postgresNode.description },
+    ],
+    relationships: [
+      { source: customerApp.id, target: apiGateway.id, relationship: 'CONNECTS_TO', description: 'HTTPS / REST' },
+      { source: apiGateway.id, target: orderService.id, relationship: 'CALLS', description: 'gRPC Route' },
+      { source: orderService.id, target: restaurantService.id, relationship: 'CALLS', description: 'Order Validation' },
+      { source: orderService.id, target: paymentService.id, relationship: 'CALLS', description: 'Process Payment' },
+      { source: orderService.id, target: kafkaNode.id, relationship: 'PUBLISHES_TO', description: 'publish: order_created' },
+      { source: kafkaNode.id, target: deliveryService.id, relationship: 'CONSUMES_FROM', description: 'subscribe: order_placed' },
+      { source: deliveryService.id, target: postgresNode.id, relationship: 'STORES_IN', description: 'Courier State' },
+    ],
+    technologies: ['Kafka', 'PostgreSQL'],
+  });
+
   return {
     operations,
     summary: 'Planned Food Delivery Platform: Customer App → API Gateway → Order Service (Restaurant, Payment, Kafka) → Delivery Service → PostgreSQL.',
@@ -429,6 +490,19 @@ function planKafkaScenario(
       createOp('ADD_EDGE', 'Connect Producer Service → Kafka', e2.id, { edge: e2 })
     );
   }
+
+  useGraphStore.getState().setCurrentIR({
+    components: [
+      { id: 'node-user', name: 'User', type: 'user', description: 'User client' },
+      { id: 'node-producer-svc', name: 'Producer Service', type: 'service', description: 'Service producer' },
+      { id: kafkaNode.id, name: kafkaNode.label, type: kafkaNode.type, technology: 'Kafka', description: kafkaNode.description },
+    ],
+    relationships: [
+      { source: 'node-user', target: 'node-producer-svc', relationship: 'CALLS', description: 'HTTP Request' },
+      { source: 'node-producer-svc', target: kafkaNode.id, relationship: 'PUBLISHES_TO', description: 'Publish event' },
+    ],
+    technologies: ['Kafka'],
+  });
 
   return {
     operations,
@@ -516,6 +590,21 @@ function planAICustomerSupportSystem(
     createOp('ADD_EDGE', 'Connect RAG → Knowledge Base', edgeRAGKB.id, { edge: edgeRAGKB })
   );
 
+  useGraphStore.getState().setCurrentIR({
+    components: [
+      { id: userNode.id, name: userNode.label, type: userNode.type, description: userNode.description },
+      { id: supportAgent.id, name: supportAgent.label, type: supportAgent.type, description: supportAgent.description },
+      { id: ragService.id, name: ragService.label, type: ragService.type, description: ragService.description },
+      { id: knowledgeBase.id, name: knowledgeBase.label, type: knowledgeBase.type, description: knowledgeBase.description },
+    ],
+    relationships: [
+      { source: userNode.id, target: supportAgent.id, relationship: 'CALLS', description: 'User Query' },
+      { source: supportAgent.id, target: ragService.id, relationship: 'CALLS', description: 'Retrieve Context' },
+      { source: ragService.id, target: knowledgeBase.id, relationship: 'STORES_IN', description: 'Vector Search' },
+    ],
+    technologies: [],
+  });
+
   return {
     operations,
     summary: 'Planned AI Customer Support Architecture (User → Support Agent → RAG → Knowledge Base)',
@@ -598,6 +687,21 @@ function planMultiAgentSupport(
     createOp('ADD_NODE', 'Create Technical Agent node', techAgent.id, { node: techAgent }),
     createOp('ADD_EDGE', 'Connect Agent Router → Technical Agent', edgeRouterTech.id, { edge: edgeRouterTech })
   );
+
+  useGraphStore.getState().setCurrentIR({
+    components: [
+      { id: router.id, name: router.label, type: router.type, description: router.description },
+      { id: salesAgent.id, name: salesAgent.label, type: salesAgent.type, description: salesAgent.description },
+      { id: billingAgent.id, name: billingAgent.label, type: billingAgent.type, description: billingAgent.description },
+      { id: techAgent.id, name: techAgent.label, type: techAgent.type, description: techAgent.description },
+    ],
+    relationships: [
+      { source: router.id, target: salesAgent.id, relationship: 'CALLS', description: 'Route: Sales' },
+      { source: router.id, target: billingAgent.id, relationship: 'CALLS', description: 'Route: Billing' },
+      { source: router.id, target: techAgent.id, relationship: 'CALLS', description: 'Route: Technical' },
+    ],
+    technologies: [],
+  });
 
   return {
     operations,
