@@ -590,8 +590,8 @@ function resolveComponentId(
 export function generateOperationsFromDiff(
   diff: ArchitectureDiff,
   currentGraphState: { nodes: GraphNode[]; edges: GraphEdge[] },
-  newIntentId: string,
-  baseVersion: number,
+  _newIntentId: string,
+  _baseVersion: number,
   createOp: (
     type: GraphOperation['type'],
     desc: string,
@@ -708,7 +708,7 @@ export function generateOperationsFromDiff(
 export function replanArchitecture(
   newIntent: Intent,
   graphState: { nodes: GraphNode[]; edges: GraphEdge[]; version: number },
-  activeOperations: GraphOperation[],
+  _activeOperations: GraphOperation[],
   fallbackIR: ArchitectureIR | null,
   createOp: (
     type: GraphOperation['type'],
